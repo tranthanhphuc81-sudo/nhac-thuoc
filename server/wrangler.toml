@@ -6,10 +6,8 @@ compatibility_date = "2026-09-01"
 DAILY_LIMIT = "20"
 MODEL = "claude-haiku-5-5"
 
-# Bỏ dấu # 3 dòng dưới sau khi tạo KV (xem README) để bật giới hạn lượt quét mỗi ngày
-# [[kv_namespaces]]
-# binding = "USAGE"
-# id = "DIEN_ID_KV_VAO_DAY"
+# Giới hạn lượt quét mỗi ngày cần một KV tên USAGE. Lệnh sau tự tạo và tự thêm vào cuối file này:
+#   npx wrangler kv namespace create USAGE --binding USAGE --update-config
 
 # Secret (không ghi vào file này):
 #   npx wrangler secret put ANTHROPIC_API_KEY

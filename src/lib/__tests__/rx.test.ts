@@ -148,3 +148,10 @@ test('callClaude: gửi đúng header và xử lý mã lỗi', async () => {
   }) as unknown as typeof fetch;
   await assert.rejects(callClaude({ base64: 'A', mediaType: 'image/jpeg' }, 'x', { fetchImpl: down }), (e: RxError) => e.code === 'network');
 });
+
+test('serializeRequestBody ghép ảnh đúng và từ chối dữ liệu lạ', async () => {
+  const { serializeRequestBody } = await import('../rx/extract');
+  const img = { base64: 'QUJD+/9=', mediaType: 'image/jpeg' as const };
+  assert.deepEqual(JSON.parse(serializeRequestBody(img)), buildRequestBody(img));
+  assert.throws(() => serializeRequestBody({ base64: 'abc"},"x":"', mediaType: 'image/jpeg' }), RxError);
+});

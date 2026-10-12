@@ -119,6 +119,21 @@ export function buildRequestBody(image: RxImage, model: string = DEFAULT_MODEL) 
   };
 }
 
+const BASE64_RE = /^[A-Za-z0-9+/=]+$/;
+const IMG_PLACEHOLDER = '__RX_IMAGE_BASE64__';
+
+/**
+ * Tạo JSON gửi Claude mà không JSON.stringify chuỗi ảnh vài MB (tốn ~7–10 ms CPU,
+ * sát giới hạn 10 ms của gói Cloudflare Workers miễn phí). Base64 không chứa ký tự
+ * cần escape nên ghép thẳng vào chuỗi là an toàn — sau khi đã kiểm tra ký tự.
+ */
+export function serializeRequestBody(image: RxImage, model: string = DEFAULT_MODEL): string {
+  if (!BASE64_RE.test(image.base64)) throw new RxError('Dữ liệu ảnh không hợp lệ.', 'bad_image');
+  const template = JSON.stringify(buildRequestBody({ ...image, base64: IMG_PLACEHOLDER }, model));
+  const at = template.indexOf(IMG_PLACEHOLDER);
+  return template.slice(0, at) + image.base64 + template.slice(at + IMG_PLACEHOLDER.length);
+}
+
 export class RxError extends Error {
   constructor(
     message: string,
@@ -201,7 +216,7 @@ export async function callClaude(
     res = await f(ANTHROPIC_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': ANTHROPIC_VERSION },
-      body: JSON.stringify(buildRequestBody(image, opts.model)),
+      body: serializeRequestBody(image, opts.model),
     });
   } catch {
     throw new RxError('Không kết nối được tới dịch vụ AI. Kiểm tra mạng.', 'network');

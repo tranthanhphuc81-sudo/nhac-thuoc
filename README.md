@@ -135,9 +135,8 @@ npx wrangler secret put ANTHROPIC_API_KEY
 #    Ví dụ: Phuc=phuc-8Tq2xk,Me=me-4Lw9pz,Tuan=tuan-7Hn3vd
 npx wrangler secret put ACCESS_CODES
 
-# 3. (Nên làm) Bật giới hạn lượt quét mỗi ngày
-npx wrangler kv namespace create USAGE
-#    → mở wrangler.toml, bỏ dấu # ở khối [[kv_namespaces]] và dán id vừa nhận
+# 3. (Nên làm) Bật giới hạn lượt quét mỗi ngày — lệnh tự thêm KV vào wrangler.toml
+npx wrangler kv namespace create USAGE --binding USAGE --update-config
 
 npx wrangler deploy
 #    → nhận địa chỉ dạng https://nhac-thuoc-scan.<tên-bạn>.workers.dev
