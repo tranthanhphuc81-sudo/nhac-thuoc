@@ -1,0 +1,100 @@
+# Tự build file APK Android mỗi khi đẩy code lên nhánh main (hoặc bấm "Run workflow").
+# File APK nằm ở mục Releases của repo, tải về điện thoại và cài trực tiếp.
+# Lưu ý: APK ký bằng khóa debug của template Expo — dùng cá nhân / chia sẻ được, không đưa lên Google Play.
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'server/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Kiểm tra code
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx expo lint
+      - run: npm test
+
+  android:
+    name: Build APK
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cài thư viện
+        run: npm ci
+
+      - name: Sinh mã Android (expo prebuild)
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+
+      - name: Build APK release
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+        env:
+          NODE_ENV: production
+
+      - name: Đặt tên file
+        id: apk
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          NAME="nhac-thuoc-v${VERSION}-build${GITHUB_RUN_NUMBER}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -lh "$NAME"
+
+      - name: Lưu APK (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.name }}
+          retention-days: 30
+
+      - name: Đăng lên Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.apk.outputs.version }}-build${{ github.run_number }}
+          name: Nhắc Uống Thuốc v${{ steps.apk.outputs.version }} (bản build ${{ github.run_number }})
+          make_latest: true
+          files: ${{ steps.apk.outputs.name }}
+          body: |
+            **Cài đặt:** tải file `.apk` bên dưới về điện thoại Android → mở file → cho phép “Cài ứng dụng không rõ nguồn gốc” nếu máy hỏi → Cài đặt.
+
+            Bản cập nhật cài đè lên bản cũ, giữ nguyên dữ liệu thuốc.
+
+            Commit: ${{ github.sha }}
