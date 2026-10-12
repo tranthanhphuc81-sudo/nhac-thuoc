@@ -155,3 +155,17 @@ test('serializeRequestBody ghép ảnh đúng và từ chối dữ liệu lạ',
   assert.deepEqual(JSON.parse(serializeRequestBody(img)), buildRequestBody(img));
   assert.throws(() => serializeRequestBody({ base64: 'abc"},"x":"', mediaType: 'image/jpeg' }), RxError);
 });
+
+test('chuẩn hóa địa chỉ máy chủ người dùng nhập', async () => {
+  const { normalizeServerUrl } = await import('../rx/url');
+  const want = 'https://nhac-thuoc-scan.phuc.workers.dev';
+  for (const input of [
+    'nhac-thuoc-scan.phuc.workers.dev',
+    ' https://nhac-thuoc-scan.phuc.workers.dev/ ',
+    'https://nhac-thuoc-scan.phuc.workers.dev/health',
+    'https://nhac-thuoc-scan.phuc.workers.dev/scan/',
+  ]) {
+    assert.equal(normalizeServerUrl(input), want, input);
+  }
+  assert.equal(normalizeServerUrl(''), '');
+});

@@ -3,7 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { Alert, TextInput, View } from 'react-native';
 
-import { checkServer, DEFAULT_RX_CONFIG, isRxReady, loadRxConfig, saveRxConfig, type RxConfig, type RxMode } from '../lib/rx/client';
+import { checkServer, DEFAULT_RX_CONFIG, isRxReady, loadRxConfig, normalizeServerUrl, saveRxConfig, type RxConfig, type RxMode } from '../lib/rx/client';
 import { useApp } from './AppContext';
 import { Badge, Button, Card, Chip, Row, Txt } from './components';
 import { colors, radius } from './theme';
@@ -40,8 +40,10 @@ export function RxSettings() {
   const input = { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 12, fontSize: fs(15), color: colors.text };
 
   const save = async () => {
-    await saveRxConfig(db, cfg);
-    setSaved(cfg);
+    const next = { ...cfg, serverUrl: normalizeServerUrl(cfg.serverUrl), accessCode: cfg.accessCode.trim(), apiKey: cfg.apiKey.trim() };
+    await saveRxConfig(db, next);
+    setCfg(next);
+    setSaved(next);
   };
 
   return (
@@ -63,20 +65,26 @@ export function RxSettings() {
           <Txt size={14} color={colors.textMuted}>
             Dùng chung cho gia đình, bạn bè. Người quản lý máy chủ cấp địa chỉ và mã truy cập riêng cho từng người.
           </Txt>
+          <Txt size={15} weight="600">
+            Địa chỉ máy chủ
+          </Txt>
           <TextInput
             value={cfg.serverUrl}
             onChangeText={(serverUrl) => setCfg({ ...cfg, serverUrl })}
-            placeholder="https://nhac-thuoc-scan.ten.workers.dev"
+            placeholder="Dán địa chỉ, vd: …workers.dev"
             placeholderTextColor={colors.textSoft}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
             style={input}
           />
+          <Txt size={15} weight="600">
+            Mã truy cập
+          </Txt>
           <TextInput
             value={cfg.accessCode}
             onChangeText={(accessCode) => setCfg({ ...cfg, accessCode })}
-            placeholder="Mã truy cập"
+            placeholder="Mã riêng của bạn"
             placeholderTextColor={colors.textSoft}
             autoCapitalize="none"
             autoCorrect={false}
